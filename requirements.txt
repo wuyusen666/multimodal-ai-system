@@ -1,0 +1,7 @@
+easyocr~=1.7.2
+pyttsx3~=2.98
+torch~=2.7.0
+numpy~=2.2.6
+pillow~=11.2.1
+gradio~=5.31.0
+torchvision~=0.22.0
