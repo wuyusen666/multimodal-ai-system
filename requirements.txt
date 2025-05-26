@@ -4,4 +4,4 @@ torch~=2.7.0
 numpy~=2.2.6
 pillow~=11.2.1
 gradio~=5.31.0
-torchvision~=0.22.0
+ultralytics~=8.3.145

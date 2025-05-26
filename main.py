@@ -25,10 +25,10 @@ def process_image(image):
         logger.info("完成目标检测。")
 
         # 语音播报（建议放最后，不影响主流程）
-        try:
-            speak_text_async(text)
-        except Exception as e:
-            logger.error(f"语音播报失败：{e}")
+        # try:
+        #     speak_text_async(text)
+        # except Exception as e:
+        #     logger.error(f"语音播报失败：{e}")
 
         return image_with_boxes, text
 

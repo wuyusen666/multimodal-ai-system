@@ -1,31 +1,18 @@
 # src/detection_module.py
-import torch
-from torchvision.models.detection import fasterrcnn_resnet50_fpn
-from torchvision.transforms import functional as F
+import ultralytics
+from torch.serialization import add_safe_globals
+from ultralytics import YOLO
 from PIL import Image, ImageDraw
-import numpy as np
 from src.logger import logger
 
-# 加载预训练的 Faster R-CNN 模型
-model = fasterrcnn_resnet50_fpn(pretrained=True)
-model.eval()
-logger.info("加载预训练的 Faster R-CNN 模型完成")
+# 允许自定义类
+add_safe_globals([ultralytics.nn.tasks.DetectionModel])
 
-# 加载类别名称
-COCO_INSTANCE_CATEGORY_NAMES = [
-    '__background__', 'person', 'bicycle', 'car', 'motorcycle', 'airplane', 'bus',
-    'train', 'truck', 'boat', 'traffic light', 'fire hydrant', 'N/A', 'stop sign',
-    'parking meter', 'bench', 'bird', 'cat', 'dog', 'horse', 'sheep', 'cow',
-    'elephant', 'bear', 'zebra', 'giraffe', 'N/A', 'backpack', 'umbrella', 'N/A', 'N/A',
-    'handbag', 'tie', 'suitcase', 'frisbee', 'skis', 'snowboard', 'sports ball',
-    'kite', 'baseball bat', 'baseball glove', 'skateboard', 'surfboard', 'tennis racket',
-    'bottle', 'N/A', 'wine glass', 'cup', 'fork', 'knife', 'spoon', 'bowl',
-    'banana', 'apple', 'sandwich', 'orange', 'broccoli', 'carrot', 'hot dog', 'pizza',
-    'donut', 'cake', 'chair', 'couch', 'potted plant', 'bed', 'N/A', 'dining table',
-    'N/A', 'N/A', 'toilet', 'N/A', 'tv', 'laptop', 'mouse', 'remote', 'keyboard', 'cell phone',
-    'microwave', 'oven', 'toaster', 'sink', 'refrigerator', 'N/A', 'book',
-    'clock', 'vase', 'scissors', 'teddy bear', 'hair drier', 'toothbrush'
-]
+
+# 加载预训练 YOLOv8 模型
+model = YOLO('yolov8n.pt', verbose=False)  # 可选模型：yolov8s.pt/yolov8m.pt/yolov8l.pt
+logger.info("YOLOv8 模型加载完成")
+
 
 def detect_objects(image):
     try:
@@ -33,29 +20,29 @@ def detect_objects(image):
         if not isinstance(image, Image.Image):
             raise ValueError("输入必须是 PIL 图像对象")
 
-        image_tensor = F.to_tensor(image).unsqueeze(0)
-        logger.info("图像预处理完成")
-
-        with torch.no_grad():
-            predictions = model(image_tensor)
+        # 执行推理
+        results = model(image, conf=0.5) # 调整conf参数控制检测灵敏度（当前设为0.5）
         logger.info("物体检测完成")
 
-        scores = predictions[0]['scores'].numpy()
-        labels = predictions[0]['labels'].numpy()
-        boxes = predictions[0]['boxes'].numpy()
-
-        filtered_indices = np.where(scores > 0.5)[0]
-        filtered_boxes = boxes[filtered_indices]
-        filtered_labels = labels[filtered_indices]
-        filtered_scores = scores[filtered_indices]
-
-        # 复制图像再绘制，避免修改输入图像
+        # 复制图像再绘制
         image_copy = image.copy()
         draw = ImageDraw.Draw(image_copy)
 
-        for box, label, score in zip(filtered_boxes, filtered_labels, filtered_scores):
-            draw.rectangle([(box[0], box[1]), (box[2], box[3])], outline='red', width=2)
-            draw.text((box[0], box[1]), f"{COCO_INSTANCE_CATEGORY_NAMES[label]}: {score:.2f}", fill='red')
+        # 解析结果
+        for result in results:
+            boxes = result.boxes.xyxy.cpu().numpy()
+            classes = result.boxes.cls.cpu().numpy()
+            confidences = result.boxes.conf.cpu().numpy()
+            names = result.names
+
+            for box, cls, conf in zip(boxes, classes, confidences):
+                x1, y1, x2, y2 = box
+                label = f"{names[int(cls)]} {conf:.2f}"
+
+                # 绘制边界框
+                draw.rectangle([(x1, y1), (x2, y2)], outline='red', width=2)
+                # 绘制标签
+                draw.text((x1, y1), label, fill='red')
 
         logger.info("检测结果绘制完成")
         return image_copy
