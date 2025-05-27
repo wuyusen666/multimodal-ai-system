@@ -29,20 +29,20 @@ def format_detection_results(detection_data):
         )
     return "\n".join(results)
 
-def process_image(image):
+def process_image(image, model_type='n'):
     if image is None:
         logger.warning("未接收到有效的图像输入")
         return None, "未接收到有效的图像输入"
 
     try:
-        logger.info("开始处理图像...")
+        logger.info(f"开始处理图像（使用模型YOLOv8{model_type}）...")
 
         # OCR 识别
         text = perform_ocr(image)
         logger.info(f"OCR识别结果：{text}")
 
         # 物体检测
-        image_with_boxes, detection_data = detect_objects(image)
+        image_with_boxes, detection_data = detect_objects(image, model_type)
         logger.info("完成目标检测。")
 
         # 语音播报（建议放最后，不影响主流程）
@@ -73,6 +73,22 @@ with gr.Blocks() as demo:
         # 输入列
         with gr.Column(scale=1):
             image_input = gr.Image(type="pil", label="📷 上传图片")
+            gr.Markdown("""
+            ### 🤖 模型说明
+            | 模型版本 | 速度 | 精度 | 推荐用途 |
+            |----------|------|------|---------|
+            | **nano (n)** | 🚀 非常快 | ⭐ | 快速预览、小模型部署 |
+            | **small (s)** | ⚡ 快速 | ⭐⭐ | 常规应用场景，适中平衡 |
+            | **medium (m)** | 🐢 稍慢 | ⭐⭐⭐ | 精度优先、对性能要求不高的情况 |
+
+            > 模型越大，检测精度越高，但处理时间也会更长。推荐默认使用 **small (s)** 获得较好平衡。
+            """)
+            model_selector = gr.Dropdown(
+                choices=['n', 's', 'm'],
+                value='s',
+                label="🔧 选择模型",
+                info="YOLOv8模型版本：nano(n)/small(s)/medium(m)"
+            )
             submit_btn = gr.Button("🔍 开始分析", variant="primary")
 
         # 输出列
@@ -94,7 +110,7 @@ with gr.Blocks() as demo:
 
     submit_btn.click(
         fn=process_image,
-        inputs=[image_input],
+        inputs=[image_input, model_selector],
         outputs=[image_output, text_output, detection_output]
     )
 
