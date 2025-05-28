@@ -7,6 +7,8 @@ from src.logger import logger
 from src.ocr_module import perform_ocr
 from src.tts_module import start_play, stop_play
 
+with open("style.css", "r", encoding="utf-8") as f:
+    custom_css = f.read()
 
 def format_detection_results(detection_data):
     """将检测结果转换为用户友好的文本格式"""
@@ -56,60 +58,69 @@ def process_image(image, model_type='n'):
         return None, "图像处理失败，请检查日志。"
 
 
-with gr.Blocks() as demo:
-    gr.Markdown(f"""# 多模态 AI 系统演示
-    <div style="color: #666; margin-top: -10px; font-size: 0.9em">
-    当前运行模式：{"🚀 GPU加速" if torch.cuda.is_available() else "⏳ CPU模式"}
+with gr.Blocks(css=custom_css) as demo:
+    gr.Markdown(f"""
+    # 🧠 多模态 AI 系统演示
+    <div class="subtitle">
+        当前运行模式：{"🚀 GPU加速" if torch.cuda.is_available() else "⏳ CPU模式"}
     </div>
+    
+    <details class="guide">
+      <summary>📘 快速上手指南</summary>
+      <ol>
+        <li>📷 上传一张包含文字或物体的图片</li>
+        <li>🔧 选择模型（默认small即可）</li>
+        <li>🔍 点击 <strong>开始分析</strong> 按钮</li>
+        <li>📖 查看结果 或 ▶️ 播放语音播报</li>
+      </ol>
+      <p>✅ 如果识别结果为空，可能图片内容不清晰，建议更换清晰图像。</p>
+    </details>
     """)
 
     with gr.Row():
-        # 输入列
         with gr.Column(scale=1):
-            image_input = gr.Image(type="pil", label="📷 上传图片")
+            gr.Markdown('<div class="section-box"> 📷 上传与模型设置</div>')
+            image_input = gr.Image(type="pil",
+                                   label="上传图片",
+                                   sources=["upload", "clipboard"])
+            model_selector = gr.Dropdown(
+                choices=['n', 's', 'm'],
+                value='s',
+                label="选择模型",
+                info="YOLOv8模型版本：nano(n)/small(s)/medium(m)"
+            )
+            submit_btn = gr.Button("🔍 开始分析", variant="primary")
+
             gr.Markdown("""
-            ### 🤖 模型说明
+            <details class="accordion">
+            <summary>📘 模型说明</summary>
+
             | 模型版本 | 速度 | 精度 | 推荐用途 |
             |----------|------|------|---------|
             | **nano (n)** | 🚀 非常快 | ⭐ | 快速预览、小模型部署 |
             | **small (s)** | ⚡ 快速 | ⭐⭐ | 常规应用场景，适中平衡 |
             | **medium (m)** | 🐢 稍慢 | ⭐⭐⭐ | 精度优先、对性能要求不高的情况 |
-
-            > 模型越大，检测精度越高，但处理时间也会更长。推荐默认使用 **small (s)** 获得较好平衡。
+            </details>
             """)
-            model_selector = gr.Dropdown(
-                choices=['n', 's', 'm'],
-                value='s',
-                label="🔧 选择模型",
-                info="YOLOv8模型版本：nano(n)/small(s)/medium(m)"
-            )
-            submit_btn = gr.Button("🔍 开始分析", variant="primary")
 
-        # 输出列
         with gr.Column(scale=2):
-            image_output = gr.Image(label="🔎 目标检测结果", type="pil")
+            gr.Markdown('<div class="section-box"> 🔍 检测与识别结果</div>')
+            image_output = gr.Image(label="目标检测结果", type="pil")
             text_output = gr.Textbox(label="📖 OCR识别文本")
 
-            # 音频播放提示
-            gr.Markdown("""
-                    <div style="background-color: #FFF3CD; border-left: 4px solid #FFC107; padding: 10px; margin: 10px 0;">
-                        <p style="margin: 0; font-size: 0.9em; color: #856404;">
-                            <i class="fas fa-volume-up"></i> 
-                            <strong>温馨提示：</strong>目前语音播放功能仅支持电脑扬声器输出，暂不支持蓝牙耳机，播放时声音将从电脑扬声器发出😇
-                        </p>
-                    </div>
-                    """)
+            gr.Markdown("""<div class="audio-warning">
+                <strong>温馨提示：</strong>目前语音播放仅支持电脑扬声器，播放时声音将从电脑扬声器发出 😇
+            </div>""")
 
-            play_btn = gr.Button("▶️ 开始语音播报", variant="secondary")
-            stop_btn = gr.Button("⏹️ 停止语音播报", variant="secondary")
+            with gr.Row():
+                play_btn = gr.Button("▶️ 开始语音播报", variant="secondary")
+                stop_btn = gr.Button("⏹️ 停止语音播报", variant="secondary")
 
-        # 检测结果列
         with gr.Column(scale=1):
-            gr.Markdown("### 🎯 检测到以下物体")
+            gr.Markdown('<div class="section-box"> 🎯 检测物体</div>')
             detection_output = gr.Textbox(
-                label="",
                 placeholder="检测结果将显示在此处...",
-                lines=8,
+                lines=10,
                 interactive=False,
                 show_copy_button=True,
                 container=False
