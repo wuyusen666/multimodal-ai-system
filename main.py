@@ -5,7 +5,7 @@ import torch
 from src.detection_module import detect_objects
 from src.logger import logger
 from src.ocr_module import perform_ocr
-from src.tts_module import speak_text_async
+from src.tts_module import start_play, stop_play
 
 
 def format_detection_results(detection_data):
@@ -29,6 +29,7 @@ def format_detection_results(detection_data):
         )
     return "\n".join(results)
 
+
 def process_image(image, model_type='n'):
     if image is None:
         logger.warning("未接收到有效的图像输入")
@@ -45,15 +46,8 @@ def process_image(image, model_type='n'):
         image_with_boxes, detection_data = detect_objects(image, model_type)
         logger.info("完成目标检测。")
 
-        # 语音播报（建议放最后，不影响主流程）
-        try:
-            speak_text_async(text)
-        except Exception as e:
-            logger.error(f"语音播报失败：{e}")
-
         # 格式化检测结果
         formatted_results = format_detection_results(detection_data)
-
 
         return image_with_boxes, text, formatted_results
 
@@ -96,6 +90,19 @@ with gr.Blocks() as demo:
             image_output = gr.Image(label="🔎 目标检测结果", type="pil")
             text_output = gr.Textbox(label="📖 OCR识别文本")
 
+            # 音频播放提示
+            gr.Markdown("""
+                    <div style="background-color: #FFF3CD; border-left: 4px solid #FFC107; padding: 10px; margin: 10px 0;">
+                        <p style="margin: 0; font-size: 0.9em; color: #856404;">
+                            <i class="fas fa-volume-up"></i> 
+                            <strong>温馨提示：</strong>目前语音播放功能仅支持电脑扬声器输出，暂不支持蓝牙耳机，播放时声音将从电脑扬声器发出😇
+                        </p>
+                    </div>
+                    """)
+
+            play_btn = gr.Button("▶️ 开始语音播报", variant="secondary")
+            stop_btn = gr.Button("⏹️ 停止语音播报", variant="secondary")
+
         # 检测结果列
         with gr.Column(scale=1):
             gr.Markdown("### 🎯 检测到以下物体")
@@ -112,6 +119,18 @@ with gr.Blocks() as demo:
         fn=process_image,
         inputs=[image_input, model_selector],
         outputs=[image_output, text_output, detection_output]
+    )
+
+    play_btn.click(
+        fn=lambda x: start_play(x),
+        inputs=[text_output],
+        outputs=[]
+    )
+
+    stop_btn.click(
+        fn=stop_play,
+        inputs=[],
+        outputs=[]
     )
 
 if __name__ == "__main__":
