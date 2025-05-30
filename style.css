@@ -1,5 +1,5 @@
 body::after {
-    content: "学号-lcqz";
+    content: "Author：wys";
     position: fixed;
     top: 50%;
     left: 50%;

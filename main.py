@@ -5,7 +5,7 @@ import torch
 from src.detection_module import detect_objects
 from src.logger import logger
 from src.ocr_module import perform_ocr
-from src.tts_module import start_play, stop_play
+from src.tts_module import start_play
 
 with open("style.css", "r", encoding="utf-8") as f:
     custom_css = f.read()
@@ -64,7 +64,7 @@ with gr.Blocks(css=custom_css) as demo:
     <div class="subtitle">
         当前运行模式：{"🚀 GPU加速" if torch.cuda.is_available() else "⏳ CPU模式"}
     </div>
-    
+
     <details class="guide">
       <summary>📘 快速上手指南</summary>
       <ol>
@@ -109,12 +109,11 @@ with gr.Blocks(css=custom_css) as demo:
             text_output = gr.Textbox(label="📖 OCR识别文本")
 
             gr.Markdown("""<div class="audio-warning">
-                <strong>温馨提示：</strong>目前语音播放仅支持电脑扬声器，播放时声音将从电脑扬声器发出 😇
+                <strong>温馨提示：</strong>语音播放仅支持电脑扬声器输出，且<strong>无法中途停止</strong>。如需更改朗读内容，可手动编辑文本框后重新点击 ▶️ 开始语音播报 😇
             </div>""")
 
-            with gr.Row():
-                play_btn = gr.Button("▶️ 开始语音播报", variant="secondary")
-                stop_btn = gr.Button("⏹️ 停止语音播报", variant="secondary")
+            # with gr.Row():
+            play_btn = gr.Button("▶️ 开始语音播报", variant="secondary")
 
         with gr.Column(scale=1):
             gr.Markdown('<div class="section-box"> 🎯 检测物体</div>')
@@ -135,12 +134,6 @@ with gr.Blocks(css=custom_css) as demo:
     play_btn.click(
         fn=lambda x: start_play(x),
         inputs=[text_output],
-        outputs=[]
-    )
-
-    stop_btn.click(
-        fn=stop_play,
-        inputs=[],
         outputs=[]
     )
 
